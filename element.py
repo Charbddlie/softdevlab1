@@ -189,7 +189,6 @@ class HtmlElement:
     def spell_check(self):
         print(self.tab_render(check=True))
     
-    @auto_archive
     @staticmethod
     def read(path):
         HtmlElement.reset()
@@ -232,7 +231,6 @@ class HtmlElement:
         with open(path, "w", encoding='utf-8') as f:
             f.write(root.tab_render())
     
-    @auto_archive
     @staticmethod
     def init():
         HtmlElement.reset()
