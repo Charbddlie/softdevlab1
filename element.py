@@ -1,7 +1,20 @@
 from spellchecker import SpellChecker
 import re
+import copy
+
+def auto_archive(func):
+    def wrapper(*args, **kwargs):
+        result = func(*args, **kwargs)
+        obj = args[0] if args else None
+        if obj == HtmlElement.root: HtmlElement.archive()
+        return result
+    return wrapper
+
 class HtmlElement:
     existing_ids = set()
+    states = []
+    state_point = -1
+    root = None
     basic_tags = ('html', 'head', 'title', 'body')
     spell = SpellChecker()
 
@@ -126,6 +139,7 @@ class HtmlElement:
             tree_str += child.tree_render(child_prefix,check)
         return tree_str
 
+    @auto_archive
     def insert(self, new_tag, new_id, element_id, *content):
         content = ' '.join(map(str, content))
         new_element = HtmlElement(new_tag, content, element_id=new_id)
@@ -136,6 +150,8 @@ class HtmlElement:
             if child.insert(element_id, new_element):
                 return True
         return False
+    
+    @auto_archive
     def append(self, new_tag, new_id, element_id, *content):
         content = ' '.join(map(str, content))
         new_element = HtmlElement(new_tag, content, element_id = new_id)
@@ -143,15 +159,26 @@ class HtmlElement:
         if element: element.add_child(new_element)
         else: raise ValueError(f"Element with id '{element_id}' not found.")
     
+    @auto_archive
     def edit_id(self, old_id, new_id):
         self.__update_element(old_id, new_id=new_id)
     
+    @auto_archive
     def edit_text(self, old_id, *content):
         content = ' '.join(map(str, content))
         self.__update_element(old_id, new_content=content)
     
+    @auto_archive
     def delete(self, del_id):
-        raise Exception("还没写")
+        if del_id == "html": raise Exception("无法删除html节点")
+        if self.id == del_id:
+            return self
+        found = None
+        for i, child in enumerate(self.children):
+            found = child.delete(del_id)
+            if found: break
+        if found: del self.children[i]
+        return None
     
     def print_indent(self, step=2):
         print(self.tab_render(step=step))
@@ -162,9 +189,10 @@ class HtmlElement:
     def spell_check(self):
         print(self.tab_render(check=True))
     
+    @auto_archive
     @staticmethod
     def read(path):
-        HtmlElement.existing_ids = set()
+        HtmlElement.reset()
         from bs4 import BeautifulSoup
 
         with open(path, 'r', encoding='utf-8') as file:
@@ -194,19 +222,64 @@ class HtmlElement:
             return element
 
         # 从 soup 对象中构造 HtmlElement 对象
-        return create_html_element(next(soup.children))
+        HtmlElement.root = create_html_element(next(soup.children))
+        HtmlElement.archive()
+        return HtmlElement.root
 
     @staticmethod
     def save(path, root):
+        HtmlElement.save_reset()
         with open(path, "w", encoding='utf-8') as f:
             f.write(root.tab_render())
     
+    @auto_archive
     @staticmethod
     def init():
-        HtmlElement.existing_ids = set()
+        HtmlElement.reset()
         root = HtmlElement(tag='html')
-        # root.append('head','head', element_id='html')
-        root.append('body', 'body', element_id='html')
-        root.insert('head','head','body')
-        root.append('title','title', element_id='head')
+        body = HtmlElement(tag='body')
+        head = HtmlElement(tag='head')
+        title = HtmlElement(tag='title')
+        root.children.append(head)
+        root.children.append(body)
+        head.children.append(title)
+
+        HtmlElement.root = root
+        HtmlElement.archive()
         return root
+    
+    @staticmethod
+    def undo():
+        if HtmlElement.state_point <= 0: 
+            raise Exception("已回到初始状态")
+        HtmlElement.state_point -= 1
+        HtmlElement.root = HtmlElement.states[HtmlElement.state_point]
+        return HtmlElement.root
+
+    @staticmethod
+    def archive():
+        HtmlElement.state_point += 1
+        if HtmlElement.state_point < len(HtmlElement.states):
+            del HtmlElement.states[HtmlElement.state_point:]
+        HtmlElement.states.append(copy.deepcopy(HtmlElement.root))
+
+    @staticmethod
+    def redo():
+        if HtmlElement.state_point >= len(HtmlElement.states) - 1: 
+            raise Exception("已为最新状态")
+        HtmlElement.state_point += 1
+        HtmlElement.root = HtmlElement.states[HtmlElement.state_point]
+        return HtmlElement.root
+
+    @staticmethod
+    def reset():
+        HtmlElement.states = []
+        HtmlElement.state_point = -1
+        HtmlElement.existing_ids = set()
+        HtmlElement.root = None
+
+    @staticmethod
+    def save_reset():
+        HtmlElement.states = []
+        HtmlElement.state_point = -1
+        HtmlElement.archive()

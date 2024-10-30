@@ -7,7 +7,7 @@ def main():
     print("请输入命令，输入 'exit' 退出：")
 
     safe_cmds = ("exit", "read", "init")
-    dynamic_cmds = ("insert","append","edit-id","edit-text","delete","print-indent","print-tree","spell-check")
+    dynamic_cmds = ("insert","append","edit-id","edit-text","delete","print-indent","print-tree","spell-check","undo","redo")
     static_cmds = ("read", "save", "init")
 
     static_cmds_func = {
@@ -26,6 +26,8 @@ def main():
             "print-indent":[root.print_indent, "无法显示"],
             "print-tree":[root.print_tree, "无法显示"],
             "spell-check":[root.spell_check, "无法检查"],
+            "undo":[root.undo, "无法撤销"],
+            "redo":[root.redo, "无法重做"],
         }
         command = line.strip()
         if command.lower() == 'exit':
@@ -42,14 +44,18 @@ def main():
             print(f"未初始化，无法执行 {cmd}")
             continue
 
+        print(cmd,'##############')
+        if cmd == "edit-id":
+            1+1
         args = parts[1:]
         act = dynamic_cmds_func[cmd] if cmd in dynamic_cmds else static_cmds_func[cmd]
         try:
             if cmd == "save": args.append(root)
             res = act[0](*args)
-            if cmd in ["init", "read"]: root = res
+            if cmd in ["init", "read", "undo", "redo"]: root = res
         except Exception as e:
             print(act[1], e)
+            
 
 if __name__ == "__main__":
     sys.stdin = [
@@ -64,8 +70,49 @@ if __name__ == "__main__":
         "print-tree",
         "edit-text list-new now I have content",
         "print-tree",
+        "delete item3",
+        "print-tree",
         "spell-check",
         "print-tree",
+        "undo",
+        "print-tree",
+        "undo",
+        "print-tree",
+        "undo",
+        "print-tree",
+        "undo",
+        "print-tree",
+        "undo",
+        "print-tree",
+        "undo",
+        "print-tree",
+        "undo",
+        "print-tree",
+        "undo",
+        "print-tree",
+        "undo",
+        "print-tree",
+        "undo",
+        "print-tree",
+        "redo",
+        "print-tree",
+        "redo",
+        "print-tree",
+        "redo",
+        "print-tree",
+        "redo",
+        "print-tree",
+        "redo",
+        "print-tree",
+        "redo",
+        "print-tree",
+        "redo",
+        "print-tree",
+        "undo",
+        "print-tree",
         "save test.html",
+        "undo",
+        "print-tree",
+        
     ]
     main()
