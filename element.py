@@ -42,7 +42,6 @@ class HtmlElement:
             self.children.append(child)
         else:
             self.children.insert(index, child)
-
     def set_content(self, content):
         if content == '': 
             self.content = ''
@@ -142,14 +141,18 @@ class HtmlElement:
     @auto_archive
     def insert(self, new_tag, new_id, element_id, *content):
         content = ' '.join(map(str, content))
-        new_element = HtmlElement(new_tag, content, element_id=new_id)
         for i, child in enumerate(self.children):
             if child.id == element_id:
-                self.children.insert(i, new_element)
+                new_element = HtmlElement(new_tag, content, element_id=new_id)
+                # self.children.insert(i, new_element)
+                self.add_child(new_element, i)
                 return True
-            if child.insert(element_id, new_element):
-                return True
+            else:
+                if child.insert(new_tag, new_id, element_id, *content):
+                    return True
         return False
+        
+        
     
     @auto_archive
     def append(self, new_tag, new_id, element_id, *content):
